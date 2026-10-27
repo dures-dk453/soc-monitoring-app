@@ -1,0 +1,44 @@
+% ==============================================================================
+% IEEE TEMPLATE SECTION: PHYSICAL SECURITY & REAL-TIME MONITORING (SOC HUB)
+% Module: Security Team - Identity and Access Management Project (U2)
+% Universidad Politécnica de Yucatán (UPY)
+% ==============================================================================
+
+\section{Physical Security and Real-Time SOC Monitoring}
+
+\subsection{Introduction}
+Modern data center compliance mandates not only logical identity verification, but also stringent physical perimeter defense and continuous surveillance. In this project, the Security Operations Center (SOC) monitoring sub-system acts as the physical counterpart to the Identity and Access Management (IAM) infrastructure. Its primary objective is to verify that individuals accessing restricted server rack rooms correspond to authenticated identities authorized within Microsoft 365 and OneLogin, while ensuring 24/7 evidence retention and remote mobile supervision.
+
+\subsection{Theoretical Framework}
+\begin{itemize}
+    \item \textbf{Network Video Recorder (NVR) vs. Analog DVR:} While legacy architectures rely on Digital Video Recorders (DVRs) paired with analog coaxial cabling and passive video transceivers (baluns), modern enterprise standards favor IP-native NVR architectures. Digital cameras encode video directly via H.264/H.265 protocols and transmit over standard Category 6 Unshielded Twisted Pair (UTP) Ethernet cabling terminated with 8P8C (RJ45) modular connectors, utilizing Power over Ethernet (PoE, IEEE 802.3af/at).
+    \item \textbf{Real-Time Streaming Protocol (RTSP) and go2rtc:} Video ingestion is governed by RTSP over TCP/IP, complemented by modern re-streaming engines (such as go2rtc bundled within Frigate NVR) to transcode raw streams into low-latency WebRTC, Motion JPEG (MJPEG), and HTTP snapshot feeds.
+    \item \textbf{Continuous 24/7 Surveillance Policy:} According to industry standards (e.g., ISO/IEC 27001 Annex A.11), physical access points must be continuously recorded without gap intervals. Retention policies enforce circular buffer overwrites after a designated retention window (1 to 7 days).
+\end{itemize}
+
+\subsection{Technical Development and Implementation}
+
+\subsubsection{Topology and Infrastructure Integration}
+The implemented architecture interconnects the physical access perimeter with the logical control hub:
+\begin{enumerate}
+    \item \textbf{Perimeter Sensing Layer:} An IP surveillance camera (`cam_entrada`) is deployed at the RFID turnstile portal, while an internal unit (`cam_interior`) oversees critical server racks. A third continuous live stream (`zocalo_cdmx`) provides ongoing baseline telemetry.
+    \item \textbf{NVR Server Layer:} A containerized deployment of Frigate NVR (v0.14.1) operates at host IP \texttt{172.16.0.57:5000}. It executes continuous 24/7 recording via dedicated storage mounts (\texttt{./storage:/media/frigate}) with automated circular retention.
+    \item \textbf{Mobile Operator Console (Flutter PWA):} A purpose-built mobile application serves as the SOC telemetry hub. The frontend interfaces with Frigate's REST APIs:
+    \begin{itemize}
+        \item \texttt{GET /api/config}: Auto-discovers camera inventory and operational states (\texttt{enabled: true/false}).
+        \item \texttt{GET /api/stats}: Retrieves hardware utilization, frames per second (FPS), and process health.
+        \item \texttt{GET /api/<cam>/latest.jpg?h=480}: Renders sub-second video feeds with low latency ($\approx 90$\,ms).
+    \end{itemize}
+    \item \textbf{Access Audit Integration:} The mobile console incorporates an audit view correlated with the RFID microcontroller and Flask dashboard endpoints (\texttt{/registros} and \texttt{/nfc/poll}), mapping physical card UIDs to authorized roles (SysAdmin, Network Engineer, Security Auditor, DBA) and triggering visual alarm indicators (Green/Red LED status).
+\end{enumerate}
+
+\subsection{Experimental Results and Verification}
+The system was validated under both local network conditions and simulated remote operator workflows:
+\begin{itemize}
+    \item \textbf{Streaming Latency:} By standardizing the mobile stream to sub-stream snapshots ($640 \times 480$ resolution at 11\,FPS), latency was reduced to under 100\,ms over IEEE 802.11 Wi-Fi, completely eliminating frame buffering.
+    \item \textbf{24/7 Continuous Recording:} Verification of the containerized volume confirmed continuous retention without packet loss.
+    \item \textbf{Intrusion Detection Telemetry:} Simulated unauthorized RFID access attempts were immediately caught by the console, generating forensic incident logs (tagged with unique identifiers, e.g., \texttt{EV-1000}, and timestamps synchronized with Mérida local time).
+\end{itemize}
+
+\subsection{Conclusion}
+The integration of a containerized NVR with a responsive Flutter mobile console bridges the gap between hardware access control and enterprise SOC oversight. By deploying modern IP streaming protocols and cross-referencing physical badge events with enterprise directory roles, the organization ensures defense-in-depth, continuous compliance, and auditable chain-of-custody for data center operations.
